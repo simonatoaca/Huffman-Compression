@@ -5,7 +5,7 @@ HuffmanTree::HuffmanTree()
 	this->nodeCount = 0;
 }
 
-uint16_t HuffmanTree::getNumberOfNodes()
+uint64_t HuffmanTree::getNumberOfNodes()
 {
 	return this->nodeCount;
 }
@@ -45,10 +45,9 @@ void HuffmanTree::constructTree(std::priority_queue<HuffmanTreeNode>* nodes)
 	delete nodes;
 }
 
-void HuffmanTree::serializeNode(HuffmanTreeNode* node, int* currentNodePos)
+void HuffmanTree::serializeNode(HuffmanTreeNode* node, long long int* currentNodePos)
 {
 	(*currentNodePos)++;
-	//HuffmanSerializedNode* serializedNode = new HuffmanSerializedNode();
 	HuffmanSerializedNode serializedNode = {0, 0};
 	if (!node->leftChild && !node->rightChild) {
 		serializedNode.isTerminal = 1;
@@ -56,14 +55,14 @@ void HuffmanTree::serializeNode(HuffmanTreeNode* node, int* currentNodePos)
 	} else {
 		serializedNode.isTerminal = 0;
 		serializedNode.childData.leftChild = *currentNodePos + 1;
+		serializedNode.childData.rightChild = 0;
 	}
 
 	// Add to vector
-	this->serializedNodes.insert(this->serializedNodes.end(), serializedNode);
+	this->serializedNodes.emplace_back(serializedNode);
 }
 
-void HuffmanTree::__serializeTree(HuffmanTreeNode* node, int* currentNodePos,
-								  int* parentNodePos, direction dir)
+void HuffmanTree::__serializeTree(HuffmanTreeNode* node, long long int* currentNodePos, direction dir)
 {
 	if (!node)
 		return;
@@ -71,26 +70,28 @@ void HuffmanTree::__serializeTree(HuffmanTreeNode* node, int* currentNodePos,
 	serializeNode(node, currentNodePos);
 
 	if (dir == RIGHT) {
-		this->serializedNodes[*parentNodePos].childData.rightChild = *currentNodePos;
-		//printf("RIGHT: CURR: %d, ROOT: %d\n", *currentNodePos, *parentNodePos);
-		(*parentNodePos)--;
-	} else {
-		*parentNodePos = *currentNodePos - 1;
-		//printf("LEFT: CURR: %d, ROOT: %d\n", *currentNodePos, *parentNodePos);
+		// Search for the last node that has no rightChild (and is not terminal)
+		for (long long int i = *currentNodePos - 1; i >= 0; i--) {
+			if (!this->serializedNodes[i].isTerminal && !this->serializedNodes[i].childData.rightChild) {
+				this->serializedNodes[i].childData.rightChild = *currentNodePos;
+				break;
+			} 
+		}
 	}
 
-	__serializeTree(node->leftChild, currentNodePos, parentNodePos, LEFT);
-	__serializeTree(node->rightChild, currentNodePos, parentNodePos, RIGHT);
+	__serializeTree(node->leftChild, currentNodePos, LEFT);
+	__serializeTree(node->rightChild, currentNodePos, RIGHT);
 }
 
 void HuffmanTree::serializeTree()
 {
-	int currentNodePos = -1;
-	int parentNodePos = 0;
+	long long int currentNodePos = -1;
+
+	this->serializedNodes.reserve(this->nodeCount);
 
 	serializeNode(this->root, &currentNodePos);
-	__serializeTree(this->root->leftChild, &currentNodePos, &parentNodePos, LEFT);
-	__serializeTree(this->root->rightChild, &currentNodePos, &parentNodePos, RIGHT);
+	__serializeTree(this->root->leftChild, &currentNodePos, LEFT);
+	__serializeTree(this->root->rightChild, &currentNodePos, RIGHT);
 }
 
 void HuffmanTree::__encodeSymbols(HuffmanTreeNode* node, std::vector<bool> symbolCode,
@@ -99,7 +100,7 @@ void HuffmanTree::__encodeSymbols(HuffmanTreeNode* node, std::vector<bool> symbo
 	if (!node)
 		return;
 
-	symbolCode.push_back(dir);
+	symbolCode.emplace_back(dir);
 
 	if (!node->leftChild && !node->rightChild) {
 		symbols->insert(std::pair<uint8_t, std::vector<bool>>(node->value, symbolCode));
@@ -120,7 +121,7 @@ std::map<uint8_t, std::vector<bool>>* HuffmanTree::encodeSymbols()
 	return symbols;
 }
 
-void __freeTree(HuffmanTreeNode *node)
+void HuffmanTree::__freeTree(HuffmanTreeNode *node)
 {
 	if (!node)
 		return;

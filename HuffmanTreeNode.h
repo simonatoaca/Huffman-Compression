@@ -4,7 +4,7 @@
 #include <queue>
 
 typedef struct HuffmanTreeNode {
-	float probability;
+	double probability;
 
 	uint8_t value;
 	HuffmanTreeNode* leftChild;

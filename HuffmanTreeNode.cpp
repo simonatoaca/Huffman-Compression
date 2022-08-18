@@ -5,7 +5,7 @@ HuffmanTreeNode::HuffmanTreeNode()
 	this->leftChild = nullptr;
 	this->rightChild = nullptr;
 	this->value = 0;
-	this->probability = 0.0f;
+	this->probability = 0.0;
 }
 
 HuffmanTreeNode::HuffmanTreeNode(HuffmanTreeNode *left, HuffmanTreeNode *right)

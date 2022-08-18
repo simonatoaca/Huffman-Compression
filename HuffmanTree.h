@@ -7,25 +7,26 @@
 
 class HuffmanTree {
 private:
-	uint16_t nodeCount;
+	uint64_t nodeCount;
 	HuffmanTreeNode* root;
 	std::vector<HuffmanSerializedNode> serializedNodes;
 	typedef enum {LEFT, RIGHT} direction;
 
+	HuffmanTreeNode* unifyNodes(HuffmanTreeNode* left, HuffmanTreeNode* right);
+	void serializeNode(HuffmanTreeNode* node, long long int* currentNodePos);
+	void __serializeTree(HuffmanTreeNode* node, long long int* currentNodePos, direction dir);
+	void __encodeSymbols(HuffmanTreeNode* node, std::vector<bool> symbolCode,
+						 std::map<uint8_t, std::vector<bool>>* symbols, direction dir);
+	void __freeTree(HuffmanTreeNode* node);
 public:
 	HuffmanTree();
 	~HuffmanTree();
 
-	uint16_t getNumberOfNodes();
+	uint64_t getNumberOfNodes();
 	std::vector<HuffmanSerializedNode> getSerializedNodes();
-	HuffmanTreeNode* unifyNodes(HuffmanTreeNode* left, HuffmanTreeNode* right);
+	
 	void constructTree(std::priority_queue<HuffmanTreeNode>* nodes);
-	void serializeNode(HuffmanTreeNode* node, int* currentNodePos);
-	void __serializeTree(HuffmanTreeNode* node, int* currentNodePos,
-						 int* rootNodePos, direction dir);
+	
 	void serializeTree();
-
-	void __encodeSymbols(HuffmanTreeNode* node, std::vector<bool> symbolCode,
-						 std::map<uint8_t, std::vector<bool>>* symbols, direction dir);
 	std::map<uint8_t, std::vector<bool>>* encodeSymbols();
 };
