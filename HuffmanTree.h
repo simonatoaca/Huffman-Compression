@@ -13,8 +13,8 @@ private:
 	typedef enum {LEFT, RIGHT} direction;
 
 	HuffmanTreeNode* unifyNodes(HuffmanTreeNode* left, HuffmanTreeNode* right);
-	void serializeNode(HuffmanTreeNode* node, long long int* currentNodePos);
-	void __serializeTree(HuffmanTreeNode* node, long long int* currentNodePos, direction dir);
+	void serializeNode(HuffmanTreeNode* node, uint16_t* currentNodePos);
+	void __serializeTree(HuffmanTreeNode* node, uint16_t* currentNodePos, direction dir);
 	void __encodeSymbols(HuffmanTreeNode* node, std::vector<bool> symbolCode,
 						 std::map<uint8_t, std::vector<bool>>* symbols, direction dir);
 	void __freeTree(HuffmanTreeNode* node);

@@ -45,33 +45,33 @@ void HuffmanTree::constructTree(std::priority_queue<HuffmanTreeNode>* nodes)
 	delete nodes;
 }
 
-void HuffmanTree::serializeNode(HuffmanTreeNode* node, long long int* currentNodePos)
+void HuffmanTree::serializeNode(HuffmanTreeNode* node, uint16_t* currentNodePos)
 {
-	(*currentNodePos)++;
-	HuffmanSerializedNode serializedNode = {0, 0};
+	// Initialize the node as if it was not terminal
+	HuffmanSerializedNode serializedNode = {.isTerminal = 0,
+						  .childData = {(uint16_t)(*currentNodePos + 1), 0}};
+
+	// If it is terminal:
 	if (!node->leftChild && !node->rightChild) {
-		serializedNode.isTerminal = 1;
+		serializedNode.isTerminal++;
 		serializedNode.value = node->value;
-	} else {
-		serializedNode.isTerminal = 0;
-		serializedNode.childData.leftChild = *currentNodePos + 1;
-		serializedNode.childData.rightChild = 0;
 	}
 
 	// Add to vector
 	this->serializedNodes.emplace_back(serializedNode);
 }
 
-void HuffmanTree::__serializeTree(HuffmanTreeNode* node, long long int* currentNodePos, direction dir)
+void HuffmanTree::__serializeTree(HuffmanTreeNode* node, uint16_t* currentNodePos, direction dir)
 {
 	if (!node)
 		return;
 
+	(*currentNodePos)++;
 	serializeNode(node, currentNodePos);
 
 	if (dir == RIGHT) {
 		// Search for the last node that has no rightChild (and is not terminal)
-		for (long long int i = *currentNodePos - 1; i >= 0; i--) {
+		for (uint16_t i = *currentNodePos - 1; i != UINT16_MAX; i--) {
 			if (!this->serializedNodes[i].isTerminal && !this->serializedNodes[i].childData.rightChild) {
 				this->serializedNodes[i].childData.rightChild = *currentNodePos;
 				break;
@@ -85,7 +85,7 @@ void HuffmanTree::__serializeTree(HuffmanTreeNode* node, long long int* currentN
 
 void HuffmanTree::serializeTree()
 {
-	long long int currentNodePos = -1;
+	uint16_t currentNodePos = 0;
 
 	this->serializedNodes.reserve(this->nodeCount);
 

@@ -8,7 +8,7 @@ HuffmanTreeNode* makeNode(uint8_t value, uint64_t occurences, uint64_t fileSize)
 	return newNode;
 }
 
-std::priority_queue<HuffmanTreeNode>* parseFile(char *fileName, uint32_t* fileSize)
+std::priority_queue<HuffmanTreeNode>* parseFile(char *fileName, uint64_t* fileSize)
 {
 	FILE *inputFile = fopen(fileName, "rb");
 	std::map<uint8_t, uint32_t> symbolMap;
@@ -74,25 +74,47 @@ std::vector<uint8_t>* encodeFile(char *fileName, std::map<uint8_t, std::vector<b
 	return encoding;
 }
 
-void compressFile(char *fileName)
+char* generateOutputFileName(char* fileName)
+{
+	char* copy = strdup(fileName);
+	char* directory = NULL;
+	if (strchr(copy, '/')) {
+		directory = strtok(copy, "/.");
+	}
+	char* strippedFileName = strtok(NULL, ".");
+	char* extension = strtok(NULL, ".");
+
+	char* outputFile = (char*) malloc((strlen(fileName) + 20) * sizeof(char));
+	char* tail = strtok(NULL, ".");
+	if (tail && !strcmp(tail, "cmp")) {
+		sprintf(outputFile, "%s/decompressed_%s.%s", directory, strippedFileName, extension);
+	} else {
+		sprintf(outputFile, "%s/%s.%s.cmp", directory, strippedFileName, extension);
+	}
+
+	free(copy);
+	printf("OUTPUT: %s\n", outputFile);
+	return outputFile;
+}
+
+void compressFile(char* fileName)
 {
 	/* COMPRESSING DATA */
 	HuffmanTree tree;
-	uint32_t fileSize = 0;
+	uint64_t fileSize = 0;
 	std::priority_queue<HuffmanTreeNode>* nodes = parseFile(fileName, &fileSize);
 
 	tree.constructTree(nodes);
 	tree.serializeTree();
 
 	/* WRITING THE COMPRESSED DATA */
-	char outputFile[strlen(fileName) + 5];
-	sprintf(outputFile, "%s.cmp", fileName);
+	char* outputFile = generateOutputFileName(fileName);
 
 	FILE *out = fopen(outputFile, "wb");
 
 	// Number of nodes to be read
 	uint64_t nodeCount = tree.getNumberOfNodes();
-	fwrite(&nodeCount, sizeof(uint8_t), 1, out);
+	fwrite(&nodeCount, sizeof(uint64_t), 1, out);
 
 	// Write serialized nodes
 	std::vector<HuffmanSerializedNode> serializedNodes = tree.getSerializedNodes();
@@ -102,13 +124,14 @@ void compressFile(char *fileName)
 	}
 
 	// Write original file size
-	fwrite(&fileSize, sizeof(uint32_t), 1, out);
+	fwrite(&fileSize, sizeof(uint64_t), 1, out);
 
 	// Write encoded bytes
 	std::map<uint8_t, std::vector<bool>>* symbols = tree.encodeSymbols();
 	std::vector<uint8_t>* encoding = encodeFile(fileName, *symbols);
 	fwrite(encoding->data(), sizeof(uint8_t), encoding->size(), out);
 
+	free(outputFile);
 	delete symbols;
 	delete encoding;
 	fclose(out);
@@ -118,61 +141,69 @@ std::vector<bool>* decodeByte(uint8_t byte)
 {
 	std::vector<bool>* decodedByte = new std::vector<bool>;
 	for (size_t i = 0; i < 8; i++) {
-		bool bit = (byte & (1 << i)) >> i;
-		decodedByte->push_back(bit);
+		bool bit = (byte >> i) & 1;
+		decodedByte->emplace_back(bit);
 	}
 
 	return decodedByte;
 }
 
-uint8_t getSymbol(std::vector<HuffmanSerializedNode> serializedNodes, int* nodePos, std::vector<bool> bitArray, int* bitPos)
+uint8_t getSymbol(std::vector<HuffmanSerializedNode> serializedNodes, uint64_t* nodePos,
+				  std::vector<bool> bitArray, uint64_t* bitPos)
 {
-	if (serializedNodes[*nodePos].isTerminal) {
-		return serializedNodes[*nodePos].value;
+	HuffmanSerializedNode node = serializedNodes[*nodePos];
+	while (!node.isTerminal) {
+		if (bitArray[*bitPos]) {
+			*nodePos = node.childData.rightChild;
+		} else {
+			*nodePos = node.childData.leftChild;
+		}
+		(*bitPos)++;
+		node = serializedNodes[*nodePos];
 	}
-
-	if (bitArray[*bitPos]) {
-		*nodePos = serializedNodes[*nodePos].childData.rightChild;
-	} else {
-		*nodePos = serializedNodes[*nodePos].childData.leftChild;
-	}
-	(*bitPos)++;
-	
-	return getSymbol(serializedNodes, nodePos, bitArray, bitPos);
+	return node.value;
 }
 
 void decompressFile(char *fileName)
 {
-	char outputFile[100];
-
-	sprintf(outputFile, "%s.decomp", fileName);
+	char* outputFile = generateOutputFileName(fileName);
 
 	FILE *in = fopen(fileName, "rb");
 	FILE *out = fopen(outputFile, "wb");
 
-	uint8_t nodeCount = 0;
-	if (!fread(&nodeCount, sizeof(uint8_t), 1, in))
+	if (!in || !out) {
+		fprintf(stderr, "Failed to open file %s\n", !in ? fileName : outputFile);
+		return;
+	}
+
+	// Read node count
+	uint64_t nodeCount = 0;
+	if (!fread(&nodeCount, sizeof(uint64_t), 1, in))
 		return;
 
+	// Read nodeCount serialized nodes
 	std::vector<HuffmanSerializedNode> serializedNodes;
 	serializedNodes.reserve(nodeCount);
-	for (int i = 0; i < nodeCount; i++) {
+	for (uint64_t i = 0; i < nodeCount; i++) {
 		HuffmanSerializedNode serializedNode = {0, 0};
 		if (!fread(&serializedNode, sizeof(HuffmanSerializedNode), 1, in))
 			return;
 		serializedNodes.emplace_back(serializedNode);
 	}
 
-	uint32_t fileSize = 0;
-	if (!fread(&fileSize, sizeof(uint32_t), 1, in))
+	// Read the original file size
+	uint64_t fileSize = 0;
+	if (!fread(&fileSize, sizeof(uint64_t), 1, in))
 		return;
 
+	// Read byte encoding of the original text
 	std::vector<uint8_t> encoding;
 	uint8_t byte;
 	while (fread(&byte, sizeof(uint8_t), 1, in)) {
 		encoding.emplace_back(byte);
 	}
 
+	// Turn the bytes into an array of bits for further decoding
 	std::vector<bool> bitArray;
 	for (uint8_t byte : encoding) {
 		std::vector<bool>* decodedByte = decodeByte(byte);
@@ -180,13 +211,16 @@ void decompressFile(char *fileName)
 		delete decodedByte;
 	}
 
-	int bitPos = 0;
-	for (uint32_t i = 0; i < fileSize; i++) {
-		int nodePos = 0;
+	// Turn the array of bits into the appropiate symbols
+	uint64_t bitPos = 0;
+	uint64_t nodePos = 0;
+	for (uint64_t i = 0; i < fileSize; i++) {
+		nodePos = 0;
 		uint8_t symbol = getSymbol(serializedNodes, &nodePos, bitArray, &bitPos);
 		fwrite(&symbol, sizeof(uint8_t), 1, out);
 	}
 
+	free(outputFile);
 	fclose(in);
 	fclose(out);
 }
