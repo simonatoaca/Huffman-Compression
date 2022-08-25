@@ -37,7 +37,7 @@ std::priority_queue<HuffmanTreeNode>* parseFile(char *fileName, uint64_t* fileSi
 	return nodes;
 }
 
-uint8_t getByte(std::vector<bool> bitArray, size_t startPos)
+uint8_t getByte(std::vector<bool>& bitArray, size_t startPos)
 {
 	uint8_t byte = 0;
 	for (size_t i = 0; i < 8; i++) {
@@ -47,9 +47,9 @@ uint8_t getByte(std::vector<bool> bitArray, size_t startPos)
 	return byte;
 }
 
-std::vector<uint8_t>* encodeFile(char *fileName, std::map<uint8_t, std::vector<bool>> symbols)
+std::vector<uint8_t>* encodeFile(char* fileName, std::map<uint8_t, std::vector<bool>> symbols)
 {
-	FILE *inputFile = fopen(fileName, "rb");
+	FILE* inputFile = fopen(fileName, "rb");
 
 	std::vector<bool> bitArray;
 	uint8_t value;
@@ -93,7 +93,6 @@ char* generateOutputFileName(char* fileName)
 	}
 
 	free(copy);
-	printf("OUTPUT: %s\n", outputFile);
 	return outputFile;
 }
 
@@ -148,8 +147,8 @@ std::vector<bool>* decodeByte(uint8_t byte)
 	return decodedByte;
 }
 
-uint8_t getSymbol(std::vector<HuffmanSerializedNode> serializedNodes, uint64_t* nodePos,
-				  std::vector<bool> bitArray, uint64_t* bitPos)
+uint8_t getSymbol(std::vector<HuffmanSerializedNode>& serializedNodes, uint64_t* nodePos,
+				  std::vector<bool>& bitArray, uint64_t* bitPos)
 {
 	HuffmanSerializedNode node = serializedNodes[*nodePos];
 	while (!node.isTerminal) {
