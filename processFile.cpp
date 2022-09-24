@@ -118,8 +118,7 @@ void compressFile(char* fileName)
 	// Write serialized nodes
 	std::vector<HuffmanSerializedNode> serializedNodes = tree.getSerializedNodes();
 	for (uint64_t i = 0; i < nodeCount; i++) {
-		HuffmanSerializedNode serializedNode = serializedNodes[i];
-	 	fwrite(&serializedNode, sizeof(serializedNode), 1, out);
+	 	fwrite(&serializedNodes[i], sizeof(HuffmanSerializedNode), 1, out);
 	}
 
 	// Write original file size
@@ -163,12 +162,12 @@ uint8_t getSymbol(std::vector<HuffmanSerializedNode>& serializedNodes, uint64_t*
 	return node.value;
 }
 
-void decompressFile(char *fileName)
+void decompressFile(char* fileName)
 {
 	char* outputFile = generateOutputFileName(fileName);
 
-	FILE *in = fopen(fileName, "rb");
-	FILE *out = fopen(outputFile, "wb");
+	FILE* in = fopen(fileName, "rb");
+	FILE* out = fopen(outputFile, "wb");
 
 	if (!in || !out) {
 		fprintf(stderr, "Failed to open file %s\n", !in ? fileName : outputFile);
@@ -177,28 +176,26 @@ void decompressFile(char *fileName)
 
 	// Read node count
 	uint64_t nodeCount = 0;
-	if (!fread(&nodeCount, sizeof(uint64_t), 1, in))
+	if (!fread(&nodeCount, sizeof(nodeCount), 1, in))
 		return;
 
 	// Read nodeCount serialized nodes
 	std::vector<HuffmanSerializedNode> serializedNodes;
 	serializedNodes.reserve(nodeCount);
 	for (uint64_t i = 0; i < nodeCount; i++) {
-		HuffmanSerializedNode serializedNode = {0, 0};
-		if (!fread(&serializedNode, sizeof(HuffmanSerializedNode), 1, in))
+		if (!fread(&serializedNodes[i], sizeof(HuffmanSerializedNode), 1, in))
 			return;
-		serializedNodes.emplace_back(serializedNode);
 	}
 
 	// Read the original file size
 	uint64_t fileSize = 0;
-	if (!fread(&fileSize, sizeof(uint64_t), 1, in))
+	if (!fread(&fileSize, sizeof(fileSize), 1, in))
 		return;
 
 	// Read byte encoding of the original text
 	std::vector<uint8_t> encoding;
 	uint8_t byte;
-	while (fread(&byte, sizeof(uint8_t), 1, in)) {
+	while (fread(&byte, sizeof(byte), 1, in)) {
 		encoding.emplace_back(byte);
 	}
 
@@ -212,11 +209,10 @@ void decompressFile(char *fileName)
 
 	// Turn the array of bits into the appropiate symbols
 	uint64_t bitPos = 0;
-	uint64_t nodePos = 0;
 	for (uint64_t i = 0; i < fileSize; i++) {
-		nodePos = 0;
+		uint64_t nodePos = 0;
 		uint8_t symbol = getSymbol(serializedNodes, &nodePos, bitArray, &bitPos);
-		fwrite(&symbol, sizeof(uint8_t), 1, out);
+		fwrite(&symbol, sizeof(symbol), 1, out);
 	}
 
 	free(outputFile);

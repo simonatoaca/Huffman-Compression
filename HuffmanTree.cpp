@@ -61,7 +61,8 @@ void HuffmanTree::serializeNode(HuffmanTreeNode* node, uint16_t* currentNodePos)
 	this->serializedNodes.emplace_back(serializedNode);
 }
 
-void HuffmanTree::__serializeTree(HuffmanTreeNode* node, uint16_t* currentNodePos, direction dir)
+void HuffmanTree::__serializeTree(HuffmanTreeNode* node, uint16_t* currentNodePos,
+								  direction dir)
 {
 	if (!node)
 		return;
@@ -71,8 +72,10 @@ void HuffmanTree::__serializeTree(HuffmanTreeNode* node, uint16_t* currentNodePo
 
 	if (dir == RIGHT) {
 		// Search for the last node that has no rightChild (and is not terminal)
+		// That is the parent of the current node
 		for (uint16_t i = *currentNodePos - 1; i != UINT16_MAX; i--) {
-			if (!this->serializedNodes[i].isTerminal && !this->serializedNodes[i].childData.rightChild) {
+			if (!this->serializedNodes[i].isTerminal &&
+				!this->serializedNodes[i].childData.rightChild) {
 				this->serializedNodes[i].childData.rightChild = *currentNodePos;
 				break;
 			} 
@@ -121,7 +124,7 @@ std::map<uint8_t, std::vector<bool>>* HuffmanTree::encodeSymbols()
 	return symbols;
 }
 
-void HuffmanTree::__freeTree(HuffmanTreeNode *node)
+void HuffmanTree::__freeTree(HuffmanTreeNode* node)
 {
 	if (!node)
 		return;

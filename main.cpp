@@ -8,7 +8,6 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	clock_t t = clock();
 	if (!strcmp(argv[1], "-c")) {
 		compressFile(argv[2]);
 	} else if (!strcmp(argv[1], "-d")) {
@@ -16,7 +15,6 @@ int main(int argc, char *argv[])
 	} else {
 		fprintf(stderr, "Incorrect args. Usage: ./comp -d <file>.cmp or ./comp -c <file>");
 	}
-	t = clock() - t;
-	printf("TIME: %fs\n", ((float)t / CLOCKS_PER_SEC));
+
 	return 0;
 }
